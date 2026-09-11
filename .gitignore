@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+voting.db
+voting.db-shm
+voting.db-wal
+chain_data.json
+secret.key
+*.log
