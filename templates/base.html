@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SecureVote campus election demonstration portal">
+    <title>{% block title %}SecureVote{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="{{ url_for('index') }}">
+                <span class="brand-mark">SV</span>
+                <span class="brand-text">SecureVote <span class="brand-subtitle">Campus Election Portal</span></span>
+            </a>
+            <nav aria-label="Main navigation">
+                <a href="{{ url_for('index') }}">Home</a>
+                <a href="{{ url_for('result') }}">Results</a>
+                {% if session.get('voter_row_id') %}
+                    <a href="{{ url_for('vote') }}">Vote</a>
+                    <form method="POST" action="{{ url_for('logout') }}" class="nav-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="nav-button">Logout</button>
+                    </form>
+                {% elif session.get('is_admin') %}
+                    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                    <form method="POST" action="{{ url_for('admin_logout') }}" class="nav-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="nav-button">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('admin_login') }}">Admin</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="page">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}" role="alert">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>Academic demonstration only. Not affiliated with or approved for use by any election authority.</p>
+    </footer>
+</body>
+</html>

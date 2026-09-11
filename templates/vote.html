@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Cast Your Vote &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="card-form wide">
+    <h2>Cast your vote</h2>
+    <p class="muted">Logged in as <strong>{{ voter['full_name'] }}</strong> ({{ voter['voter_id'] }}). Choose carefully. A submitted vote cannot be changed.</p>
+
+    {% if not voting_open %}
+        <p class="flash flash-error">Voting is currently paused by the administrator.</p>
+    {% else %}
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="candidate-grid">
+                {% for c in candidates %}
+                <label class="candidate-option">
+                    <input type="radio" name="candidate_id" value="{{ c['id'] }}" required>
+                    <span class="candidate-name">{{ c['name'] }}</span>
+                    <span class="candidate-party">{{ c['party'] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">Submit vote</button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

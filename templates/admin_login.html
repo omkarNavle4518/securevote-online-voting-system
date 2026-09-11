@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Admin Login &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="card-form">
+    <h2>Administration Login</h2>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+
+        <button type="submit" class="btn btn-primary">Open Admin Dashboard</button>
+    </form>
+    {% if not production %}<p class="muted">Local demo credentials are documented in the README. Production credentials must be set through environment variables.</p>{% endif %}
+</section>
+{% endblock %}

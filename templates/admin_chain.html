@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Blockchain Ledger &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="admin-header">
+    <h2>Blockchain Ledger</h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-link">&larr; Back to dashboard</a>
+</section>
+
+<p class="{{ 'flash flash-success' if chain_valid else 'flash flash-error' }}">{{ chain_message }}</p>
+
+<div class="chain-list">
+    {% for b in blocks %}
+    <div class="block-card">
+        <div class="block-card-head">Block #{{ b['index'] }}</div>
+        <dl class="receipt">
+            <dt>Timestamp</dt><dd>{{ b['timestamp'] }}</dd>
+            <dt>Data</dt><dd class="hash">{{ b['data'] }}</dd>
+            <dt>Previous hash</dt><dd class="hash">{{ b['previous_hash'] }}</dd>
+            <dt>Hash</dt><dd class="hash">{{ b['hash'] }}</dd>
+        </dl>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

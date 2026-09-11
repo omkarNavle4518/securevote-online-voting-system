@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Login &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="card-form">
+    <h2>Voter Login</h2>
+    <p class="muted">Enter your Voter ID and registered email. We will send a time-limited OTP to that email.</p>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="voter_id">Voter ID</label>
+        <input type="text" id="voter_id" name="voter_id" placeholder="VOTXXXXXXXXXX" maxlength="13" autocomplete="username" required>
+
+        <label for="email">Registered email</label>
+        <input type="email" id="email" name="email" maxlength="254" autocomplete="email" required>
+
+        <button type="submit" class="btn btn-primary">Send OTP</button>
+    </form>
+    <p class="muted">New here? <a href="{{ url_for('register') }}">Register first</a>.</p>
+</section>
+{% endblock %}

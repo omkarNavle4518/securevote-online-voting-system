@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Results &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="card-form wide">
+    <h2>Election results</h2>
+    {% if not chain_valid %}
+        <p class="flash flash-error">Results are unavailable because the ledger integrity check failed.</p>
+    {% elif not results_visible %}
+        <p class="flash flash-info">Voting is still open. Results remain hidden until the administrator closes voting.</p>
+    {% else %}
+    <p class="muted">Voting is closed. Results are tallied by decrypting each valid ballot in the ledger.</p>
+    <div class="table-wrap"><table class="results-table">
+        <thead><tr><th>Candidate</th><th>Party</th><th>Votes</th></tr></thead>
+        <tbody>
+        {% for c in candidates %}
+            <tr>
+                <td>{{ c['name'] }}</td>
+                <td>{{ c['party'] }}</td>
+                <td>{{ tally.get(c['id'], 0) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    {% endif %}
+</section>
+{% endblock %}

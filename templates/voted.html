@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Vote Recorded &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="card-form wide">
+    {% if block %}
+        <div class="success-badge">&#10003;</div>
+        <h2>Vote submitted successfully</h2>
+        <p class="muted">Your ballot has been recorded and sealed into the blockchain ledger.</p>
+        <dl class="receipt">
+            <dt>Voter ID</dt><dd>{{ voter['voter_id'] }}</dd>
+            <dt>Block index</dt><dd>{{ block['index'] }}</dd>
+            <dt>Block hash</dt><dd class="hash">{{ block['hash'] }}</dd>
+        </dl>
+        <p class="muted">This hash identifies the recorded block. The selected candidate is encrypted in the ledger.</p>
+    {% else %}
+        <h2>You've already voted</h2>
+        <p class="muted">Our records show a ballot has already been recorded for your Voter ID. Each voter may cast one vote only.</p>
+    {% endif %}
+    <a class="btn btn-secondary" href="{{ url_for('result') }}">View live results</a>
+</section>
+{% endblock %}

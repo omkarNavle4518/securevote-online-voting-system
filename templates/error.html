@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} - SecureVote{% endblock %}
+{% block content %}
+<section class="card-form">
+    <h2>Error {{ code }}</h2>
+    <p>{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">Return home</a>
+</section>
+{% endblock %}

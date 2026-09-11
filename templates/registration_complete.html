@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Registration Complete - SecureVote{% endblock %}
+{% block content %}
+<section class="card-form">
+    <div class="success-badge" aria-hidden="true">&#10003;</div>
+    <h2>Registration complete</h2>
+    <p>Your Voter ID is:</p>
+    <strong class="code-box">{{ voter_id }}</strong>
+    <p class="muted">Save this ID now. You need it together with your registered email to log in and vote.</p>
+    <a class="btn btn-primary" href="{{ url_for('login') }}">Continue to login</a>
+</section>
+{% endblock %}

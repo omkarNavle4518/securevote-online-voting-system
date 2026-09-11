@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard &mdash; SecureVote{% endblock %}
+{% block content %}
+<section class="admin-header">
+    <h2>Administrative Dashboard</h2>
+    <form method="POST" action="{{ url_for('admin_logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-link">Logout</button>
+    </form>
+</section>
+
+<section class="stat-grid">
+    <div class="stat-card"><span class="stat-value">{{ total_registered }}</span><span class="stat-label">Total registrations</span></div>
+    <div class="stat-card"><span class="stat-value">{{ total_voted }}</span><span class="stat-label">Total votes cast</span></div>
+    <div class="stat-card">
+        <span class="stat-value">{{ "Open" if voting_open else "Stopped" }}</span>
+        <span class="stat-label">Voting status</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value {{ 'chain-ok' if chain_valid else 'chain-bad' }}">{{ "Valid" if chain_valid else "TAMPERED" }}</span>
+        <span class="stat-label">Ledger integrity</span>
+    </div>
+</section>
+
+<section class="card-form wide">
+    <form method="POST" action="{{ url_for('toggle_voting') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn {{ 'btn-secondary' if voting_open else 'btn-primary' }}">
+            {{ "Stop voting" if voting_open else "Resume voting" }}
+        </button>
+    </form>
+</section>
+
+<section class="card-form wide">
+    <h3>Live tally</h3>
+    <div class="table-wrap"><table class="results-table">
+        <thead><tr><th>Candidate</th><th>Party</th><th>Votes</th></tr></thead>
+        <tbody>
+        {% for c in candidates %}
+            <tr><td>{{ c['name'] }}</td><td>{{ c['party'] }}</td><td>{{ tally.get(c['id'], 0) }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+    <p><a href="{{ url_for('admin_chain') }}">View raw blockchain ledger &rarr;</a></p>
+</section>
+
+<section class="card-form wide">
+    <h3>Registered voters</h3>
+    <div class="table-wrap"><table class="results-table">
+        <thead><tr><th>Voter ID</th><th>Name</th><th>Email</th><th>Verified</th><th>Voted</th></tr></thead>
+        <tbody>
+        {% for v in voters %}
+            <tr>
+                <td>{{ v['voter_id'] or '-' }}</td>
+                <td>{{ v['full_name'] }}</td>
+                <td>{{ v['email'] }}</td>
+                <td>{{ "Yes" if v['is_verified'] else "Pending" }}</td>
+                <td>{{ "Yes" if v['has_voted'] else "No" }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table></div>
+</section>
+{% endblock %}

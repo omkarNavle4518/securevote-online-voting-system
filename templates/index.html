@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}SecureVote &mdash; Home{% endblock %}
+{% block content %}
+<section class="hero">
+    <h1>A secure, transparent way to vote online</h1>
+    <p>Every voter is verified with a one-time password, and every ballot is
+        stored as an encrypted ballot in a tamper-evident, hash-linked ledger.</p>
+
+    <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ url_for('register') }}">Register to vote</a>
+        <a class="btn btn-secondary" href="{{ url_for('login') }}">Login &amp; vote</a>
+    </div>
+</section>
+
+<section class="feature-grid">
+    <div class="feature-card">
+        <h3>OTP-verified identity</h3>
+        <p>Registration and login both require a time-bound one-time password, so only the person with access to the registered email can vote.</p>
+    </div>
+    <div class="feature-card">
+        <h3>Blockchain vote ledger</h3>
+        <p>Each vote becomes a block containing the hash of the block before it. If a recorded vote is changed, ledger validation detects it.</p>
+    </div>
+    <div class="feature-card">
+        <h3>One voter, one vote</h3>
+        <p>Once your ballot is recorded, your voter record is marked as voted and the portal won't let you cast a second one.</p>
+    </div>
+</section>
+{% endblock %}
