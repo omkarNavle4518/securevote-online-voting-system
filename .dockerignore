@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.pytest_cache
+__pycache__
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+chain_data.json
+secret.key
+data/
+tests/
+requirements-dev.txt
+RENDER_DEPLOYMENT.md

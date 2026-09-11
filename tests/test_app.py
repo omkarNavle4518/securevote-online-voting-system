@@ -100,3 +100,28 @@ def test_csrf_is_enforced(tmp_path, monkeypatch):
     client = securevote.app.test_client()
     response = client.post("/register", data={"full_name": "No Token", "email": "x@example.com"})
     assert response.status_code == 400
+
+
+def test_railway_uses_attached_volume_and_production_mode(tmp_path, monkeypatch):
+    monkeypatch.delenv("DATA_DIR", raising=False)
+    monkeypatch.setenv("RAILWAY_PROJECT_ID", "test-project")
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "production")
+    monkeypatch.setenv("RAILWAY_VOLUME_MOUNT_PATH", str(tmp_path))
+    monkeypatch.setenv("FLASK_SECRET_KEY", "railway-test-secret")
+    monkeypatch.setenv("BALLOT_SECRET", "railway-test-ballot-secret")
+    monkeypatch.setenv("ADMIN_USERNAME", "railway-admin")
+    monkeypatch.setenv("ADMIN_PASSWORD", "railway-test-password")
+    monkeypatch.setenv("SMTP_USER", "sender@example.com")
+    monkeypatch.setenv("SMTP_PASS", "test-app-password")
+    sys.modules.pop("app", None)
+    sys.modules.pop("blockchain", None)
+
+    securevote = importlib.import_module("app")
+    securevote.app.config.update(TESTING=True)
+
+    assert securevote.IS_RAILWAY is True
+    assert securevote.IS_PRODUCTION is True
+    assert securevote.DATA_DIR == tmp_path.resolve()
+    response = securevote.app.test_client().get("/health")
+    assert response.status_code == 200
+    assert response.get_json()["persistent_storage"] is True

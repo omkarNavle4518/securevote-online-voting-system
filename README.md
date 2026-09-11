@@ -16,9 +16,11 @@ SecureVote is a Flask-based academic online voting system with email OTP registr
 - Admin dashboard, election open/pause control, tally, and ledger validation
 - Public results hidden while voting is open, with an opt-in demo override
 - CSRF protection, secure production cookies, security headers, input validation, and no-cache responses on sensitive pages
-- Render health check at `/health`
+- Deployment health check at `/health`, including persistent-storage status on Railway
 - Automatic SQLite schema initialization when Gunicorn starts
 - Atomic ledger file writes to reduce corruption risk
+- Automatic use of an attached Railway volume through `RAILWAY_VOLUME_MOUNT_PATH`
+- Production startup guard that prevents accidental ephemeral Railway storage
 
 ## Project structure
 
@@ -28,13 +30,15 @@ blockchain.py                Tamper-evident block ledger
 templates/                   Jinja HTML templates
 static/style.css             Responsive styling
 render.yaml                  Render Blueprint configuration
+Dockerfile                   Reproducible Railway container build
 gunicorn.conf.py             Production server settings
-Procfile                     Alternative Render start command
+Procfile                     Alternative platform start command
 .env.example                 Environment-variable template without secrets
 requirements.txt             Production dependencies
 requirements-dev.txt         Test dependencies
 tests/                       Automated application tests
 RENDER_DEPLOYMENT.md         Exact deployment and Gmail setup guide
+RAILWAY_DEPLOYMENT.md        Railway volume, variables, and verification guide
 ```
 
 ## Run locally
@@ -56,11 +60,11 @@ RENDER_DEPLOYMENT.md         Exact deployment and Gmail setup guide
 
 Without SMTP credentials, local development displays the OTP only when `ALLOW_DEV_OTP=true`. Production mode never exposes an OTP on screen.
 
-Local-only admin defaults are `admin` and `admin@123`. Render production refuses to start unless a separate strong admin username and password are configured.
+Local-only admin defaults are `admin` and `admin@123`. Production refuses to start unless a separate strong admin username and password are configured.
 
 ## Production environment variables
 
-| Variable | Required on Render | Purpose |
+| Variable | Required in production | Purpose |
 | --- | --- | --- |
 | `APP_ENV` | Yes | Use `production` |
 | `FLASK_SECRET_KEY` | Yes | Signs sessions and OTP hashes |
@@ -72,8 +76,9 @@ Local-only admin defaults are `admin` and `admin@123`. Render production refuses
 | `SMTP_HOST` | Yes | `smtp.gmail.com` |
 | `SMTP_PORT` | Yes | `587` |
 | `SMTP_FROM_NAME` | No | Sender name, defaults to `SecureVote` |
-| `DATA_DIR` | Yes | Persistent data location, `/var/data/securevote` in the Blueprint |
+| `DATA_DIR` | Platform dependent | Explicit persistent data location; Railway automatically uses its mounted volume |
 | `ALLOW_DEV_OTP` | Yes | Must remain `false` in production |
+| `ALLOW_EPHEMERAL_DATA` | Railway safety override | Keep `false`; use `true` only for a disposable test without a volume |
 | `SHOW_LIVE_RESULTS` | No | Keep `false` for a fair election; `true` is only useful for demos |
 
 The Blueprint generates `FLASK_SECRET_KEY` and `BALLOT_SECRET`. Never commit real passwords or App Passwords to GitHub or place them in `.env.example`.
@@ -86,7 +91,7 @@ The project writes three files under `DATA_DIR`:
 - `chain_data.json`: encrypted ballots and hash-linked blocks
 - `secret.key`: local-only fallback encryption key when `BALLOT_SECRET` is not set
 
-The included Render Blueprint mounts a 1 GB persistent disk at `/var/data/securevote`. Keep one Gunicorn worker and one Render instance because the application uses SQLite and a local ledger file.
+The included Render Blueprint mounts a disk at `/var/data/securevote`. On Railway, attach a volume at `/data`; the application detects the Railway-provided mount path automatically. Keep one Gunicorn worker and one service replica because the application uses SQLite and a local ledger file.
 
 ## Test
 
@@ -101,4 +106,8 @@ pytest -q
 - The ledger is centralized and file-backed. It is not Ethereum or another distributed blockchain.
 - Admins can see voter names and emails. Ballot choices are encrypted and linked only to a one-way hash of the Voter ID.
 - This design is intentionally single-instance. Horizontal scaling needs a shared database and a different ledger architecture.
-- Gmail SMTP and persistent SQLite storage require a paid Render web service. See `RENDER_DEPLOYMENT.md` before deploying.
+- Persistent SQLite storage requires a mounted platform volume. See `RAILWAY_DEPLOYMENT.md` for Railway or `RENDER_DEPLOYMENT.md` for Render.
+
+## Code ownership
+
+Deploy this repository only when you own it or have permission to use it. Railway does not require superficial rewrites of authorized code. Changing identifiers, formatting, or branding does not turn unlicensed code into original work.

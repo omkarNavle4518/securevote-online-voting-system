@@ -32,7 +32,16 @@ from blockchain import Blockchain
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR)).resolve()
+IS_RAILWAY = bool(
+    os.environ.get("RAILWAY_PROJECT_ID")
+    or os.environ.get("RAILWAY_ENVIRONMENT_NAME")
+    or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+)
+DATA_DIR = Path(
+    os.environ.get("DATA_DIR")
+    or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+    or BASE_DIR
+).resolve()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = Path(os.environ.get("DATABASE_PATH", DATA_DIR / "voting.db"))
 CHAIN_PATH = Path(os.environ.get("CHAIN_PATH", DATA_DIR / "chain_data.json"))
@@ -59,7 +68,11 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-IS_PRODUCTION = os.environ.get("APP_ENV", "development").lower() == "production" or _env_bool("RENDER")
+IS_PRODUCTION = (
+    os.environ.get("APP_ENV", "development").lower() == "production"
+    or _env_bool("RENDER")
+    or IS_RAILWAY
+)
 ALLOW_DEV_OTP = _env_bool("ALLOW_DEV_OTP", default=not IS_PRODUCTION)
 SHOW_LIVE_RESULTS = _env_bool("SHOW_LIVE_RESULTS", default=False)
 
@@ -91,6 +104,15 @@ def _validate_production_config() -> None:
         raise RuntimeError("Missing required production environment variables: " + ", ".join(missing))
     if len(os.environ["ADMIN_PASSWORD"]) < 12:
         raise RuntimeError("ADMIN_PASSWORD must contain at least 12 characters in production.")
+    if (
+        IS_RAILWAY
+        and not os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+        and not _env_bool("ALLOW_EPHEMERAL_DATA")
+    ):
+        raise RuntimeError(
+            "Railway persistent storage is not attached. Add a Railway volume or "
+            "set ALLOW_EPHEMERAL_DATA=true only for a disposable test deployment."
+        )
 
 
 def _load_ballot_key() -> bytes:
@@ -361,7 +383,13 @@ def health():
         get_db().execute("SELECT 1").fetchone()
         chain_valid, _ = blockchain.is_valid()
         status = 200 if chain_valid else 503
-        return jsonify({"status": "ok" if chain_valid else "degraded"}), status
+        return jsonify(
+            {
+                "status": "ok" if chain_valid else "degraded",
+                "platform": "railway" if IS_RAILWAY else "standard",
+                "persistent_storage": bool(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")),
+            }
+        ), status
     except Exception:
         logger.exception("Health check failed")
         return jsonify({"status": "unavailable"}), 503
