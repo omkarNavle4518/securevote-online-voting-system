@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import logging
 import os
 import re
@@ -17,6 +18,8 @@ import smtplib
 import sqlite3
 import threading
 import time
+import urllib.error
+import urllib.request
 from datetime import timedelta
 from email.message import EmailMessage
 from email.utils import formataddr
@@ -97,8 +100,15 @@ def _validate_production_config() -> None:
         return
     required = [
         "FLASK_SECRET_KEY", "BALLOT_SECRET", "ADMIN_USERNAME",
-        "ADMIN_PASSWORD", "SMTP_USER", "SMTP_PASS",
+        "ADMIN_PASSWORD", "SMTP_USER",
     ]
+    email_provider = os.environ.get("EMAIL_PROVIDER", "smtp").strip().lower()
+    if email_provider == "brevo":
+        required.append("BREVO_API_KEY")
+    elif email_provider == "smtp":
+        required.append("SMTP_PASS")
+    else:
+        raise RuntimeError("EMAIL_PROVIDER must be either 'brevo' or 'smtp'.")
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
         raise RuntimeError("Missing required production environment variables: " + ", ".join(missing))
@@ -233,7 +243,47 @@ def mask_email(email: str) -> str:
     return f"{visible}{'*' * max(2, len(local) - len(visible))}@{domain}"
 
 
+def _send_brevo_email(
+    to_email: str,
+    subject: str,
+    body: str,
+    sender_email: str,
+    sender_name: str,
+) -> bool:
+    api_key = os.environ.get("BREVO_API_KEY", "").strip()
+    if not api_key or not sender_email:
+        return False
+
+    payload = json.dumps(
+        {
+            "sender": {"name": sender_name, "email": sender_email},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "textContent": body,
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return 200 <= response.status < 300
+    except urllib.error.HTTPError as exc:
+        logger.error("Brevo OTP email delivery failed: HTTP %s", exc.code)
+    except (urllib.error.URLError, OSError) as exc:
+        logger.error("Brevo OTP email delivery failed: %s", exc.__class__.__name__)
+    return False
+
+
 def send_otp_email(to_email: str, otp: str, purpose: str) -> tuple[bool, str | None]:
+    provider = os.environ.get("EMAIL_PROVIDER", "smtp").strip().lower()
     host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     user = os.environ.get("SMTP_USER", "").strip()
     password = os.environ.get("SMTP_PASS", "").replace(" ", "")
@@ -241,21 +291,30 @@ def send_otp_email(to_email: str, otp: str, purpose: str) -> tuple[bool, str | N
     port = int(os.environ.get("SMTP_PORT", "587"))
     purpose_name = "registration" if purpose == "register" else "login"
 
-    if not user or not password:
+    if not user or (provider == "smtp" and not password):
         if ALLOW_DEV_OTP:
             logger.warning("Development OTP for %s: %s", to_email, otp)
             return True, otp
         return False, None
 
-    message = EmailMessage()
-    message["Subject"] = f"SecureVote {purpose_name} code"
-    message["From"] = formataddr((from_name, user))
-    message["To"] = to_email
-    message.set_content(
+    subject = f"SecureVote {purpose_name} code"
+    body = (
         f"Your SecureVote {purpose_name} code is {otp}.\n\n"
         f"It expires in {OTP_VALIDITY_SECONDS // 60} minutes. "
         "Do not share it. If you did not request it, ignore this email."
     )
+
+    if provider == "brevo":
+        return _send_brevo_email(to_email, subject, body, user, from_name), None
+    if provider != "smtp":
+        logger.error("OTP email delivery failed: unsupported EMAIL_PROVIDER")
+        return False, None
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = formataddr((from_name, user))
+    message["To"] = to_email
+    message.set_content(body)
     try:
         with smtplib.SMTP(host, port, timeout=15) as server:
             server.ehlo()
