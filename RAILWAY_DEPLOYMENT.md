@@ -32,9 +32,8 @@ APP_ENV=production
 ALLOW_DEV_OTP=false
 ALLOW_EPHEMERAL_DATA=false
 SHOW_LIVE_RESULTS=false
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
 SMTP_FROM_NAME=SecureVote
+EMAIL_PROVIDER=brevo
 ```
 
 Add these values privately in Railway. Never commit them to GitHub:
@@ -44,9 +43,11 @@ FLASK_SECRET_KEY=<long random value>
 BALLOT_SECRET=<different long random value>
 ADMIN_USERNAME=<private admin name>
 ADMIN_PASSWORD=<strong value of at least 12 characters>
-SMTP_USER=<OTP sender Gmail address>
-SMTP_PASS=<Google App Password without spaces>
+SMTP_USER=<sender address verified in Brevo>
+BREVO_API_KEY=<Brevo transactional email API key>
 ```
+
+Railway Trial and Hobby plans block outbound SMTP. The `brevo` provider sends OTPs through HTTPS instead. A Brevo free account can verify an individual sender address by email, so a custom domain is not required for initial testing. Keep the old SMTP variables only if the service later moves to a plan that permits SMTP.
 
 Changing `BALLOT_SECRET` after votes exist makes old encrypted ballots unreadable. Changing `FLASK_SECRET_KEY` invalidates active sessions and outstanding OTP hashes.
 

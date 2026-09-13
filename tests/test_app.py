@@ -1,4 +1,5 @@
 import importlib
+import json
 import os
 import re
 import sys
@@ -111,8 +112,9 @@ def test_railway_uses_attached_volume_and_production_mode(tmp_path, monkeypatch)
     monkeypatch.setenv("BALLOT_SECRET", "railway-test-ballot-secret")
     monkeypatch.setenv("ADMIN_USERNAME", "railway-admin")
     monkeypatch.setenv("ADMIN_PASSWORD", "railway-test-password")
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "test-brevo-api-key")
     monkeypatch.setenv("SMTP_USER", "sender@example.com")
-    monkeypatch.setenv("SMTP_PASS", "test-app-password")
     sys.modules.pop("app", None)
     sys.modules.pop("blockchain", None)
 
@@ -125,3 +127,45 @@ def test_railway_uses_attached_volume_and_production_mode(tmp_path, monkeypatch)
     response = securevote.app.test_client().get("/health")
     assert response.status_code == 200
     assert response.get_json()["persistent_storage"] is True
+
+
+def test_brevo_email_uses_https_api(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("FLASK_SECRET_KEY", "brevo-test-secret")
+    monkeypatch.setenv("BALLOT_SECRET", "brevo-test-ballot-secret")
+    monkeypatch.setenv("ALLOW_DEV_OTP", "false")
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "test-brevo-api-key")
+    monkeypatch.setenv("SMTP_USER", "verified-sender@example.com")
+    sys.modules.pop("app", None)
+    sys.modules.pop("blockchain", None)
+    securevote = importlib.import_module("app")
+
+    captured = {}
+
+    class FakeResponse:
+        status = 201
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request, timeout):
+        captured["request"] = request
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(securevote.urllib.request, "urlopen", fake_urlopen)
+    delivered, dev_otp = securevote.send_otp_email("voter@example.com", "123456", "register")
+
+    assert delivered is True
+    assert dev_otp is None
+    assert captured["timeout"] == 15
+    assert captured["request"].full_url == "https://api.brevo.com/v3/smtp/email"
+    assert captured["request"].get_method() == "POST"
+    payload = json.loads(captured["request"].data)
+    assert payload["sender"]["email"] == "verified-sender@example.com"
+    assert payload["to"] == [{"email": "voter@example.com"}]
+    assert "123456" in payload["textContent"]

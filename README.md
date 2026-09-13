@@ -58,7 +58,7 @@ RAILWAY_DEPLOYMENT.md        Railway volume, variables, and verification guide
 
 4. Open `http://127.0.0.1:5000`.
 
-Without SMTP credentials, local development displays the OTP only when `ALLOW_DEV_OTP=true`. Production mode never exposes an OTP on screen.
+Without email-provider credentials, local development displays the OTP only when `ALLOW_DEV_OTP=true`. Production mode never exposes an OTP on screen.
 
 Local-only admin defaults are `admin` and `admin@123`. Production refuses to start unless a separate strong admin username and password are configured.
 
@@ -71,17 +71,21 @@ Local-only admin defaults are `admin` and `admin@123`. Production refuses to sta
 | `BALLOT_SECRET` | Yes | Derives the Fernet ballot encryption key |
 | `ADMIN_USERNAME` | Yes | Admin login username |
 | `ADMIN_PASSWORD` | Yes | Admin password, minimum 12 characters |
-| `SMTP_USER` | Yes | New Gmail address used to send OTPs |
-| `SMTP_PASS` | Yes | Google 16-character App Password, not the Gmail login password |
-| `SMTP_HOST` | Yes | `smtp.gmail.com` |
-| `SMTP_PORT` | Yes | `587` |
+| `EMAIL_PROVIDER` | Yes | `brevo` for Railway Trial/Hobby; `smtp` where outbound SMTP is available |
+| `BREVO_API_KEY` | With `EMAIL_PROVIDER=brevo` | Brevo API key with transactional-email access |
+| `SMTP_USER` | Yes | Verified sender email for Brevo, or SMTP login address |
+| `SMTP_PASS` | With `EMAIL_PROVIDER=smtp` | Google App Password or other SMTP password |
+| `SMTP_HOST` | With `EMAIL_PROVIDER=smtp` | Defaults to `smtp.gmail.com` |
+| `SMTP_PORT` | With `EMAIL_PROVIDER=smtp` | Defaults to `587` |
 | `SMTP_FROM_NAME` | No | Sender name, defaults to `SecureVote` |
 | `DATA_DIR` | Platform dependent | Explicit persistent data location; Railway automatically uses its mounted volume |
 | `ALLOW_DEV_OTP` | Yes | Must remain `false` in production |
 | `ALLOW_EPHEMERAL_DATA` | Railway safety override | Keep `false`; use `true` only for a disposable test without a volume |
 | `SHOW_LIVE_RESULTS` | No | Keep `false` for a fair election; `true` is only useful for demos |
 
-The Blueprint generates `FLASK_SECRET_KEY` and `BALLOT_SECRET`. Never commit real passwords or App Passwords to GitHub or place them in `.env.example`.
+Railway Trial and Hobby plans block outbound SMTP. Use `EMAIL_PROVIDER=brevo` there so OTP messages travel through Brevo's HTTPS API. Verify `SMTP_USER` as a sender in Brevo, and store `BREVO_API_KEY` only as a private environment variable. The SMTP path remains available for local use and hosting plans that allow it.
+
+The Blueprint generates `FLASK_SECRET_KEY` and `BALLOT_SECRET`. Never commit real passwords, App Passwords, or API keys to GitHub or place them in `.env.example`.
 
 ## Persistent data
 
