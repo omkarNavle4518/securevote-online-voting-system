@@ -50,8 +50,8 @@ DB_PATH = Path(os.environ.get("DATABASE_PATH", DATA_DIR / "voting.db"))
 CHAIN_PATH = Path(os.environ.get("CHAIN_PATH", DATA_DIR / "chain_data.json"))
 KEY_PATH = Path(os.environ.get("KEY_PATH", DATA_DIR / "secret.key"))
 
-OTP_VALIDITY_SECONDS = int(os.environ.get("OTP_VALIDITY_SECONDS", "300"))
-OTP_RESEND_COOLDOWN_SECONDS = int(os.environ.get("OTP_RESEND_COOLDOWN_SECONDS", "60"))
+OTP_VALIDITY_SECONDS = int(os.environ.get("OTP_VALIDITY_SECONDS", "600"))
+OTP_RESEND_COOLDOWN_SECONDS = int(os.environ.get("OTP_RESEND_COOLDOWN_SECONDS", "30"))
 OTP_MAX_ATTEMPTS = int(os.environ.get("OTP_MAX_ATTEMPTS", "5"))
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 VOTE_LOCK = threading.RLock()
@@ -297,10 +297,11 @@ def send_otp_email(to_email: str, otp: str, purpose: str) -> tuple[bool, str | N
             return True, otp
         return False, None
 
-    subject = f"SecureVote {purpose_name} code"
+    subject = f"SecureVote {purpose_name} OTP - use the latest code"
     body = (
         f"Your SecureVote {purpose_name} code is {otp}.\n\n"
         f"It expires in {OTP_VALIDITY_SECONDS // 60} minutes. "
+        "If you requested multiple codes, use the most recent OTP. "
         "Do not share it. If you did not request it, ignore this email."
     )
 
